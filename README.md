@@ -2,69 +2,158 @@
 
 ## 項目概述
 
-一個**完全免費**的價格監控系統，支持 Amazon、eBay、Walmart 等平台。
+一個可自架的價格監控系統，支持 Amazon、eBay、Walmart 等平台。
 
 ### 核心特性
 
-- ✅ **零成本運行** - 使用免費 API 和開源工具
-- ✅ **多平台支持** - Amazon + eBay + Walmart + 自定義平台
-- ✅ **智能爬蟲** - 自動識別平台和價格
-- ✅ **實時通知** - Telegram + Email
-- ✅ **價格歷史** - 追蹤價格趨勢
+- ✅ 前端儀表板（新增監控、查看配置、手動檢查、查看歷史、刪除任務）
+- ✅ 多平台支持（Amazon / eBay / Walmart / Generic）
+- ✅ API + 爬蟲雙模式（有 Key 走官方 API，沒 Key 走爬蟲 fallback）
+- ✅ 後端任務隊列（Celery + Redis）
+- ✅ Docker Compose 一鍵啟動
 
-## 快速開始
+---
 
-### 1. 克隆項目
+## 首次安裝（新機器）
+
+### 1) 安裝前置條件
+
+- Docker Engine
+- Docker Compose v2
+- Git
+
+### 2) 下載項目
 
 ```bash
 git clone https://github.com/wd5557/price-pulse.git
 cd price-pulse
 ```
 
-### 2. 配置環境變量
+### 3) 配置環境變量
 
 ```bash
 cp .env.example .env
-# 編輯 .env 文件（API Keys 可選，系統支持無 API Key 爬蟲模式）
 ```
 
-### 3. 啟動服務
+編輯 `.env`：
+
+- `DATABASE_URL`、`REDIS_URL` 可用預設
+- `KEEPA_API_KEY` / `EBAY_APP_ID` / `EBAY_CERT_ID` / `EBAY_DEV_ID` / `WALMART_API_KEY` 可先留空
+- 留空時會自動走爬蟲 fallback（功能可用）
+
+### 4) 啟動服務
 
 ```bash
-docker compose up -d
+docker compose up -d --build
 ```
 
-### 4. 訪問服務
+### 5) 驗證是否成功
 
-- API 文檔: http://localhost:8000/docs
-- PostgreSQL: localhost:5432
-- Redis: localhost:6379
+- 前端 UI: `http://localhost:8000/`
+- API 文檔: `http://localhost:8000/docs`
+- API 狀態: `http://localhost:8000/api/status`
+
+### 6) 停止服務
+
+```bash
+docker compose down
+```
+
+---
+
+## 已安裝後如何更新
+
+### 方式 A：拉最新代碼並重建（推薦）
+
+```bash
+cd /root/.openclaw/workspace/price-pulse
+git pull
+docker compose up -d --build
+```
+
+### 方式 B：只重啟容器（無代碼變更時）
+
+```bash
+cd /root/.openclaw/workspace/price-pulse
+docker compose restart
+```
+
+### 如遇異常，可用乾淨重建
+
+```bash
+cd /root/.openclaw/workspace/price-pulse
+docker compose down -v
+docker compose up -d --build
+```
+
+---
+
+## API 對接入口（去哪裡申請）
+
+### Amazon（Keepa）
+
+- 網站: `https://keepa.com/#!api`
+- 用途: Amazon 價格 API
+- 環境變量: `KEEPA_API_KEY`
+
+### eBay Developer
+
+- 網站: `https://developer.ebay.com/`
+- 用途: eBay API 憑證
+- 環境變量: `EBAY_APP_ID`、`EBAY_CERT_ID`、`EBAY_DEV_ID`
+
+### Walmart Developer
+
+- 網站: `https://developer.walmart.com/`
+- 用途: Walmart API Key
+- 環境變量: `WALMART_API_KEY`
+
+> 不對接 API 也能用：系統會自動回退到爬蟲模式。
+
+---
+
+## 常用運維命令
+
+查看容器狀態：
+
+```bash
+docker compose ps
+```
+
+查看 API 日誌：
+
+```bash
+docker compose logs -f api
+```
+
+查看 Worker 日誌：
+
+```bash
+docker compose logs -f celery_worker
+```
+
+---
+
+## 服務端點
+
+- 前端 UI: `GET /`
+- API 狀態: `GET /api/status`
+- 配置資訊: `GET /api/config`
+- 產品列表: `GET /api/products`
+- 新增產品: `POST /api/products`
+- 手動檢查: `POST /api/products/{product_id}/check`
+- 歷史價格: `GET /api/products/{product_id}/history`
+- 刪除產品: `DELETE /api/products/{product_id}`
+
+---
 
 ## 技術棧
 
-- **後端**: FastAPI + Python 3.11+
-- **數據庫**: PostgreSQL + Redis
-- **爬蟲**: Playwright
-- **任務隊列**: Celery
-- **前端**: React + TypeScript
-- **部署**: Docker Compose
-
-## 免費 API 組合
-
-| 平台 | API | 服務 | 月費 |
-|------|-----|------|------|
-| Amazon | Keepa API (免費套餐) | 100 請求/月 | $0 |
-| eBay | Official API | 無限制 | $0 |
-| Walmart | Official API | 無限制 | $0 |
-
-## 開發狀態
-
-- [x] 項目規劃
-- [ ] 項目初始化
-- [ ] API 開發
-- [ ] 爬蟲開發
-- [ ] 前端開發
-- [ ] 測試
+- 後端: FastAPI + SQLAlchemy
+- 任務隊列: Celery + Redis
+- 數據庫: PostgreSQL
+- 爬蟲: Playwright
+- 部署: Docker Compose
 
 ## 許可證
 
