@@ -14,24 +14,42 @@
 
 ## 快速開始
 
+### 1. 克隆項目（需要權限）
+
 ```bash
-# 複製項目
-git clone <repo-url>
+# SSH 方式（推薦）
+git clone git@github.com:wd5557/price-pulse.git
 cd price-pulse
 
-# 啟動開發環境
-docker-compose up -d
-
-# 訪置環境變量
-cp .env.example .env
-# 編輯 .env 文件
-
-# 運行數據庫遷移
-docker-compose exec api alembic upgrade head
-
-# 啟動服務
-docker-compose up
+# 或 HTTPS 方式
+git clone https://github.com/wd5557/price-pulse.git
+cd price-pulse
 ```
+
+### 2. 配置環境變量
+
+```bash
+cp .env.example .env
+# 編輯 .env 文件（API Keys 可選，系統支持無 API Key 爬蟲模式）
+```
+
+### 3. 啟動服務
+
+```bash
+docker compose up -d
+```
+
+### 4. 訪問服務
+
+- API 文檔: http://localhost:8000/docs
+- PostgreSQL: localhost:5432
+- Redis: localhost:6379
+
+---
+
+**注意**: 這是私人倉庫，克隆需要認證：
+- **SSH**: 配置好 SSH key（已有權限的 GitHub 帳號）
+- **HTTPS**: 使用 GitHub token 或已登入的 gh CLI
 
 ## 技術棧
 
