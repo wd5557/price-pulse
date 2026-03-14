@@ -4,6 +4,8 @@ from typing import List
 
 from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 
 from database import Base, engine, get_db
@@ -38,6 +40,8 @@ scrapers = {
     "generic": GenericScraper(),
 }
 
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
 
 @app.on_event("startup")
 def on_startup() -> None:
@@ -45,12 +49,43 @@ def on_startup() -> None:
 
 
 @app.get("/")
-async def root() -> dict:
+async def root() -> FileResponse:
+    return FileResponse("static/index.html")
+
+
+@app.get("/api/status")
+async def api_status() -> dict:
     return {
         "app": "PricePulse API",
         "version": "1.0.0",
         "status": "running",
         "supported_platforms": ["amazon", "ebay", "walmart"],
+    }
+
+
+@app.get("/api/config")
+async def api_config() -> dict:
+    return {
+        "features": {
+            "platform_detector": True,
+            "manual_check": True,
+            "scheduler": True,
+            "history": True,
+        },
+        "supported_platforms": ["amazon", "ebay", "walmart", "generic"],
+        "defaults": {
+            "currency": "USD",
+            "check_interval": 3600,
+        },
+        "api_routes": [
+            "GET /api/status",
+            "GET /api/config",
+            "GET /api/products",
+            "POST /api/products",
+            "POST /api/products/{product_id}/check",
+            "GET /api/products/{product_id}/history",
+            "DELETE /api/products/{product_id}",
+        ],
     }
 
 

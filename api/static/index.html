@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PricePulse Dashboard</title>
+  <style>
+    body { font-family: Arial, sans-serif; background:#0b1020; color:#e6edf3; margin:0; }
+    .container { max-width: 1080px; margin: 24px auto; padding: 0 16px; }
+    h1 { margin-bottom: 6px; }
+    .muted { color:#9ba7b4; margin-top:0; }
+    .grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(260px,1fr)); gap:12px; }
+    .card { background:#121a2f; border:1px solid #1f2a44; border-radius:10px; padding:14px; }
+    label { display:block; margin:8px 0 4px; font-size:14px; color:#b9c4d0; }
+    input, select, button { width:100%; box-sizing:border-box; padding:10px; border-radius:8px; border:1px solid #2d3a5d; background:#0f1528; color:#e6edf3; }
+    button { background:#2563eb; border:none; font-weight:600; cursor:pointer; }
+    button.secondary { background:#334155; }
+    table { width:100%; border-collapse:collapse; }
+    th, td { text-align:left; border-bottom:1px solid #1f2a44; padding:8px; font-size:14px; }
+    .row-actions { display:flex; gap:6px; }
+    .row-actions button { width:auto; padding:6px 10px; }
+    .ok { color:#4ade80; }
+    .warn { color:#f59e0b; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>PricePulse 前端儀表板</h1>
+    <p class="muted">可新增監控、查看配置、手動檢查價格、查看歷史。</p>
+
+    <div class="grid">
+      <div class="card">
+        <h3>系統狀態</h3>
+        <div id="status">載入中...</div>
+      </div>
+      <div class="card">
+        <h3>平台與配置</h3>
+        <div id="config">載入中...</div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:12px;">
+      <h3>新增監控商品</h3>
+      <form id="createForm">
+        <label>商品 URL</label>
+        <input id="url" placeholder="https://www.amazon.com/..." required />
+        <label>商品名稱（可選）</label>
+        <input id="name" placeholder="例如：iPhone 15" />
+        <label>平台</label>
+        <select id="platform">
+          <option value="">自動識別</option>
+          <option value="amazon">Amazon</option>
+          <option value="ebay">eBay</option>
+          <option value="walmart">Walmart</option>
+          <option value="generic">Generic</option>
+        </select>
+        <label>目標價格</label>
+        <input id="targetPrice" type="number" step="0.01" min="0" required />
+        <label>檢查間隔（秒）</label>
+        <input id="interval" type="number" min="60" value="3600" />
+        <div style="margin-top:10px;"><button type="submit">新增監控</button></div>
+      </form>
+      <div id="createMsg" class="muted" style="margin-top:8px;"></div>
+    </div>
+
+    <div class="card" style="margin-top:12px;">
+      <h3>監控任務列表</h3>
+      <div style="margin-bottom:8px;"><button class="secondary" id="refreshBtn">重新整理</button></div>
+      <table>
+        <thead>
+          <tr><th>ID</th><th>名稱</th><th>平台</th><th>目標價</th><th>現價</th><th>操作</th></tr>
+        </thead>
+        <tbody id="productRows"></tbody>
+      </table>
+    </div>
+  </div>
+
+<script>
+const statusEl = document.getElementById('status');
+const configEl = document.getElementById('config');
+const rowsEl = document.getElementById('productRows');
+const createMsgEl = document.getElementById('createMsg');
+
+async function fetchJson(url, options) {
+  const res = await fetch(url, options);
+  if (!res.ok) throw new Error(await res.text());
+  return await res.json();
+}
+
+async function loadStatus() {
+  try {
+    const data = await fetchJson('/api/status');
+    statusEl.innerHTML = `<div class="ok">${data.status}</div><div>${data.app} v${data.version}</div>`;
+  } catch (e) {
+    statusEl.innerHTML = `<span class="warn">載入失敗</span>`;
+  }
+}
+
+async function loadConfig() {
+  try {
+    const data = await fetchJson('/api/config');
+    configEl.innerHTML = `平台: ${data.supported_platforms.join(', ')}<br>預設間隔: ${data.defaults.check_interval}s`;
+  } catch (e) {
+    configEl.innerHTML = `<span class="warn">載入失敗</span>`;
+  }
+}
+
+async function loadProducts() {
+  try {
+    const products = await fetchJson('/api/products');
+    if (!products.length) {
+      rowsEl.innerHTML = '<tr><td colspan="6" class="muted">暫無資料</td></tr>';
+      return;
+    }
+    rowsEl.innerHTML = products.map(p => `
+      <tr>
+        <td>${p.id}</td>
+        <td>${p.product_name || '-'}</td>
+        <td>${p.platform}</td>
+        <td>${p.target_price ?? '-'}</td>
+        <td>${p.current_price ?? '-'}</td>
+        <td>
+          <div class="row-actions">
+            <button onclick="checkNow(${p.id})">檢查</button>
+            <button class="secondary" onclick="showHistory(${p.id})">歷史</button>
+            <button class="secondary" onclick="deleteProduct(${p.id})">刪除</button>
+          </div>
+        </td>
+      </tr>
+    `).join('');
+  } catch (e) {
+    rowsEl.innerHTML = `<tr><td colspan="6" class="warn">載入失敗</td></tr>`;
+  }
+}
+
+window.checkNow = async function(id) {
+  try {
+    const data = await fetchJson(`/api/products/${id}/check`, { method: 'POST' });
+    alert(`任務 ${id}: ${data.status}`);
+  } catch (e) {
+    alert('檢查失敗');
+  }
+}
+
+window.showHistory = async function(id) {
+  try {
+    const data = await fetchJson(`/api/products/${id}/history`);
+    alert(`商品 ${id} 歷史筆數: ${data.length}`);
+  } catch (e) {
+    alert('載入歷史失敗');
+  }
+}
+
+window.deleteProduct = async function(id) {
+  if (!confirm('確定刪除?')) return;
+  try {
+    await fetchJson(`/api/products/${id}`, { method: 'DELETE' });
+    await loadProducts();
+  } catch (e) {
+    alert('刪除失敗');
+  }
+}
+
+document.getElementById('createForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  createMsgEl.textContent = '提交中...';
+  const body = {
+    url: document.getElementById('url').value.trim(),
+    product_name: document.getElementById('name').value.trim() || null,
+    target_price: Number(document.getElementById('targetPrice').value),
+    check_interval: Number(document.getElementById('interval').value) || 3600,
+  };
+  const platform = document.getElementById('platform').value;
+  if (platform) body.platform = platform;
+
+  try {
+    const data = await fetchJson('/api/products', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    createMsgEl.textContent = `已新增: #${data.id}`;
+    e.target.reset();
+    document.getElementById('interval').value = 3600;
+    await loadProducts();
+  } catch (err) {
+    createMsgEl.textContent = '新增失敗，請檢查輸入。';
+  }
+});
+
+document.getElementById('refreshBtn').addEventListener('click', loadProducts);
+
+loadStatus();
+loadConfig();
+loadProducts();
+</script>
+</body>
+</html>
