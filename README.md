@@ -14,14 +14,9 @@
 
 ## 快速開始
 
-### 1. 克隆項目（需要權限）
+### 1. 克隆項目
 
 ```bash
-# SSH 方式（推薦）
-git clone git@github.com:wd5557/price-pulse.git
-cd price-pulse
-
-# 或 HTTPS 方式
 git clone https://github.com/wd5557/price-pulse.git
 cd price-pulse
 ```
@@ -44,12 +39,6 @@ docker compose up -d
 - API 文檔: http://localhost:8000/docs
 - PostgreSQL: localhost:5432
 - Redis: localhost:6379
-
----
-
-**注意**: 這是私人倉庫，克隆需要認證：
-- **SSH**: 配置好 SSH key（已有權限的 GitHub 帳號）
-- **HTTPS**: 使用 GitHub token 或已登入的 gh CLI
 
 ## 技術棧
 
