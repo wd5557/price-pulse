@@ -9,9 +9,12 @@ class EbayScraper:
     """eBay 價格爬蟲"""
     
     def __init__(self):
-        self.app_id = os.getenv("EBAY_APP_ID")
-        self.cert_id = os.getenv("EBAY_CERT_ID")
-        self.dev_id = os.getenv("EBAY_DEV_ID")
+        app_id = os.getenv("EBAY_APP_ID", "")
+        cert_id = os.getenv("EBAY_CERT_ID", "")
+        dev_id = os.getenv("EBAY_DEV_ID", "")
+        self.app_id = app_id if app_id and not app_id.startswith("your-") else None
+        self.cert_id = cert_id if cert_id and not cert_id.startswith("your-") else None
+        self.dev_id = dev_id if dev_id and not dev_id.startswith("your-") else None
         self.api_url = "https://open.api.ebay.com/shopping"
     
     async def fetch_price(self, url: str) -> Optional[Dict[str, Any]]:

@@ -1,6 +1,7 @@
 """Celery tasks for periodic price checks."""
 import asyncio
 import logging
+import os
 import time
 from datetime import datetime
 
@@ -13,10 +14,13 @@ from scrapers.amazon_scraper import AmazonScraper
 from scrapers.ebay_scraper import EbayScraper
 from scrapers.walmart_scraper import WalmartScraper
 
+redis_url = os.getenv("REDIS_URL", "redis://redis:6379/0")
+result_backend = redis_url.rsplit("/", 1)[0] + "/1"
+
 celery_app = Celery(
     "pricepulse",
-    broker="redis://localhost:6379/0",
-    backend="redis://localhost:6379/1",
+    broker=redis_url,
+    backend=result_backend,
 )
 celery_app.conf.update(task_serializer="json", result_serializer="json", accept_content=["json"])
 
@@ -110,7 +114,7 @@ def _should_alert(product: Product) -> bool:
 
 celery_app.conf.beat_schedule = {
     "check-all-products": {
-        "task": "api.celery_tasks.check_all_products",
+        "task": "celery_tasks.check_all_products",
         "schedule": crontab(minute="*/10"),
     },
 }

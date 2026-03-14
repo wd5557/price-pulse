@@ -10,7 +10,8 @@ class WalmartScraper:
     """Walmart 價格爬蟲"""
     
     def __init__(self):
-        self.api_key = os.getenv("WALMART_API_KEY")  # 可選
+        api_key = os.getenv("WALMART_API_KEY", "")
+        self.api_key = api_key if api_key and not api_key.startswith("your-") else None  # 可選
         self.api_url = "https://developer.api.walmart.com"
     
     async def fetch_price(self, url: str) -> Optional[Dict[str, Any]]:

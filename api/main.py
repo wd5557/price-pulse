@@ -8,8 +8,8 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 
-from database import Base, engine, get_db
-from models import PriceHistory, Product
+from database import Base, SessionLocal, engine, get_db
+from models import PriceHistory, Product, User
 from schemas import PriceCheckResponse, ProductCreate, ProductResponse
 from scrapers.amazon_scraper import AmazonScraper
 from scrapers.ebay_scraper import EbayScraper
@@ -46,6 +46,22 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 @app.on_event("startup")
 def on_startup() -> None:
     Base.metadata.create_all(bind=engine)
+    db = SessionLocal()
+    try:
+        user = db.query(User).filter(User.id == 1).first()
+        if not user:
+            db.add(
+                User(
+                    id=1,
+                    email="demo@pricepulse.local",
+                    password_hash="not-used",
+                    name="Demo User",
+                    is_active=True,
+                )
+            )
+            db.commit()
+    finally:
+        db.close()
 
 
 @app.get("/")
